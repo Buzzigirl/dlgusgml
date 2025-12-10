@@ -1,7 +1,10 @@
 # edu_rec_sys/views.py
 
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .services.recommendation_service import recommendation_service
+from .services.chat_service import ChatService
 import json
 
 def recommend_view(request):
@@ -69,3 +72,50 @@ def recommend_view(request):
             context['filtered_recommendations'] = [] if filtered_df.empty else filtered_df.to_dict('records')
 
     return render(request, 'edu_rec_sys/recommend.html', context)
+
+# --- Chatbot API Views ---
+
+def start_chat_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student_id = int(data.get('student_id'))
+            
+            chat_service = ChatService()
+            response_data = chat_service.start_chat(student_id)
+            
+            # Save state to session
+            request.session['chat_state'] = response_data['state']
+            
+            return JsonResponse({
+                'message': response_data['message'],
+                'choices': response_data['choices']
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+def chat_message_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_value = data.get('value')
+            
+            state = request.session.get('chat_state')
+            if not state:
+                return JsonResponse({'error': 'No active chat session'}, status=400)
+            
+            chat_service = ChatService()
+            response_data = chat_service.process_message(state, user_value)
+            
+            # Update session
+            request.session['chat_state'] = response_data['state']
+            
+            return JsonResponse({
+                'message': response_data['message'],
+                'choices': response_data['choices'],
+                'action': response_data.get('choices', [{}])[0].get('action') # Helper for frontend to know if done
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)

@@ -1,8 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <title>AI 과목 추천 시스템</title>
+    <link rel="stylesheet" href="{% static 'css/chat.css' %}">
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 2em; line-height: 1.6; background-color: #f9f9f9; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -86,8 +88,21 @@
         </div>
         {% endif %}
 
+        {% if student_data %}
+        <!-- Chat Interface Section -->
+        <div id="chat-interface">
+            <div class="chat-header">
+                <span>🤖 AI 튜터 챗봇</span>
+                <span class="typing" id="typing-indicator"></span>
+            </div>
+            <div id="chat-window" class="chat-window">
+                <!-- Messages will appear here -->
+            </div>
+        </div>
+        {% endif %}
+
         {% if base_recommendations %}
-        <div class="results-container">
+        <div class="results-container" id="base-results-container" style="display: none;">
             <h2>1️⃣ 모델 추천 Top {{ base_recommendations|length }}개 과목</h2>
             <p> AI 모델이 예측한 2024년 1학기 추천 과목입니다.</p>
             
@@ -311,6 +326,10 @@
 
     <script id="major-hierarchy-data" type="application/json">{{ major_hierarchy_json|safe }}</script>
     <script id="gyoyang-hierarchy-data" type="application/json">{{ gyoyang_hierarchy_json|safe }}</script>
+    <script>
+        const studentId = "{{ student_id|default:'' }}";
+    </script>
+    <script src="{% static 'js/chat.js' %}"></script>
     <script>
         // 최종 완성본 JavaScript
         const majorHierarchy = JSON.parse(document.getElementById('major-hierarchy-data').textContent);
