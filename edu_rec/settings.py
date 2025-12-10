@@ -27,6 +27,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-lm-y*8#9e-c5#ug!)5k2&
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-2c85c.up.railway.app',
+    'https://selfless-cat-production.up.railway.app'
+]
 
 
 # Application definition
