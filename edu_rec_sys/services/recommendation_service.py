@@ -11,6 +11,10 @@ from collections import defaultdict
 import requests
 from django.conf import settings
 
+# ⚠️ Pandas Warning Suppression (User Request)
+pd.options.mode.chained_assignment = None
+
+
 # 1단계에서 만든 모델 파일에서 클래스들을 가져옵니다.
 from ..ml_models.transformer import (
     SharedEmbeddings, TermRecTransformer, Collator,
@@ -67,7 +71,12 @@ class RecommendationService:
         self._prepare_prediction_assets()
 
         self.initialized = True
+        self.initialized = True
         print("✅ RecommendationService 초기화 완료.")
+        print("\n" + "="*50)
+        print("✨✨✨ 모든 시스템 가동 준비 완료! (All Systems Operational) ✨✨✨")
+        print("이제 웹사이트에 접속하여 학번을 입력하실 수 있습니다.")
+        print("="*50 + "\n")
 
     def _check_and_download_files(self):
         """필요한 대용량 파일이 존재하는지 확인하고, 없으면 Dropbox에서 다운로드합니다."""
