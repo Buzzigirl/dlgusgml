@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>AI 과목 추천 시스템</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 2em; line-height: 1.6; background-color: #f9f9f9; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f2f2f2; font-weight: 600; }
+        .form-container, .results-container, .student-info-container { margin-bottom: 2em; padding: 1.5em; border: 1px solid #e0e0e0; border-radius: 8px; }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5em 2em; }
+        .filter-group { margin-top: 1.5em; }
+        .filter-group strong { display: block; margin-bottom: 0.8em; font-size: 1.1em; border-bottom: 2px solid #007bff; padding-bottom: 0.3em; }
+        
+        .filter-options { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 5px; }
+        .filter-options label { cursor: pointer; user-select: none; display: inline-block; transition: transform 0.1s ease-out; }
+        .filter-options label:active { transform: scale(0.95); }
+        .filter-options span { display: inline-block; border: 1px solid #ccc; padding: 6px 12px; border-radius: 20px; background-color: #ffffff; color: #555; transition: all 0.2s ease-in-out; }
+        .filter-options input[type="checkbox"] { display: none; }
+        .filter-options input[type="checkbox"]:checked + span { background-color: #007bff; color: white; border-color: #007bff; font-weight: 500; }
+
+        button { padding: 12px 20px; font-size: 1em; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #218838; }
+        h1, h2, h3 { color: #0056b3; }
+        .error { color: red; font-weight: bold; }
+        select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+
+        .multi-select-dropdown { position: relative; width: 100%; }
+        .select-display {
+            width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px;
+            background-color: white; cursor: pointer; user-select: none;
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box;
+        }
+        .select-display::after { content: '▼'; font-size: 0.8em; }
+        .checkbox-options {
+            display: none; position: absolute; top: 100%; left: 0; right: 0;
+            background-color: white; border: 1px solid #ccc; border-top: none;
+            border-radius: 0 0 4px 4px; max-height: 200px; overflow-y: auto;
+            z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .checkbox-options.show { display: block; }
+        .checkbox-options label {
+            display: block; padding: 8px 12px; transition: background-color 0.2s;
+            transform: none; 
+        }
+        .checkbox-options label:hover { background-color: #f0f0f0; }
+        .checkbox-options input[type="checkbox"] { display: inline-block; margin-right: 8px; }
+        .checkbox-options .select-all { font-weight: bold; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Path-Finding AI 과목 추천 시스템</h1>
+
+        <div class="form-container">
+            <form method="post">
+                {% csrf_token %}
+                <label for="student_id"><strong>학생 ID를 입력하고 추천 결과 보기:</strong></label><br>
+                <input type="text" id="student_id" name="student_id" value="{{ student_id|default:'' }}" required style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px;">
+                <button type="submit">모델 추천 보기</button>
+                {% if error %}
+                    <p class="error">{{ error }}</p>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if student_data %}
+        <div class="student-info-container">
+            <h2>🎓 학생 정보 (ID: {{ student_id }})</h2>
+            <ul>
+                <li><strong>단과대학:</strong> {{ student_data.info.student_college_name }}</li>
+                <li><strong>주전공:</strong> {{ student_data.info.student_major_name }}</li>
+                <li><strong>세부전공:</strong> {{ student_data.info.student_major_detail|default:"(정보 없음)" }}</li>
+                <li><strong>입학년월:</strong> {{ student_data.info.입학년월 }}</li>
+            </ul>
+
+            <h3>📜 전체 수강 이력</h3>
+            {% for term, courses in student_data.history %}
+                <p><strong>{{ term }}:</strong> {{ courses|join:", " }}</p>
+            {% empty %}
+                <p>수강 이력이 없습니다.</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if base_recommendations %}
+        <div class="results-container">
+            <h2>1️⃣ 모델 추천 Top {{ base_recommendations|length }}개 과목</h2>
+            <p> AI 모델이 예측한 2024년 1학기 추천 과목입니다.</p>
+            
+            <table style="margin-top: 0;">
+                <thead>
+                    <tr>
+                        <th>과목명</th><th>과목 번호</th><th>과목 분류</th><th>과목 세부분류</th><th>추천 점수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in base_recommendations %}
+                    <tr>
+                        <td>{{ course.SUBJT_NM }}</td><td>{{ course.SUBJTNB }}</td><td>{{ course.subject_category }}</td><td>{{ course.subject_div }}</td><td>{{ course.pred_score|floatformat:3 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+             <hr style="margin: 2em 0;">
+
+            <button id="show-filters-btn" onclick="showFilters()">⚙️ 커스터마이징 옵션 입력하기</button>
+
+            <div id="filter-section" style="display:none;">
+                <h3>2️⃣ 나만의 맞춤 필터 적용하기</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="student_id" value="{{ student_id }}">
+                    <input type="hidden" name="is_filtering" value="true">
+                    
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <strong>과목 분류:</strong>
+                            <div class="filter-options">
+                                <label><input type="checkbox" name="subject_category" value="전체" onchange="toggleFilters()"><span>전체</span></label>
+                                <label><input type="checkbox" name="subject_category" value="전공" onchange="toggleFilters()"><span>전공</span></label>
+                                <label><input type="checkbox" name="subject_category" value="교양" onchange="toggleFilters()"><span>교양</span></label>
+                                <label><input type="checkbox" name="subject_category" value="기타" onchange="toggleFilters()"><span>기타</span></label>
+                            </div>
+                        </div>
+
+                        <div id="major-filters" style="display: none;">
+                            <div class="filter-group">
+                                <strong>단과대학 (전공):</strong>
+                                <div class="multi-select-dropdown" id="college-dropdown">
+                                    <div class="select-display">-- 선택 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                        {% for item in filter_options.college_name %}
+                                        <label><input type="checkbox" name="college_name" value="{{ item }}"> {{ item }}</label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <strong>전공:</strong>
+                                <div class="multi-select-dropdown" id="major-dropdown">
+                                    <div class="select-display">-- 단과대학을 먼저 선택하세요 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <strong>세부전공:</strong>
+                                <div class="multi-select-dropdown" id="major-detail-dropdown">
+                                    <div class="select-display">-- 전공을 먼저 선택하세요 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="gyoyang-filters" style="display: none;">
+                             <div class="filter-group">
+                                <strong>교양 분류:</strong>
+                                <div class="multi-select-dropdown" id="gyoyang-type-dropdown">
+                                    <div class="select-display">-- 선택 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                        {% for item in filter_options.general_type_gyoyang %}
+                                        <label><input type="checkbox" name="general_type_gyoyang" value="{{ item }}">{{ item }}</label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="filter-group">
+                                <strong>세부 교양 분류:</strong>
+                                <div class="multi-select-dropdown" id="gyoyang-subcategory-dropdown">
+                                    <div class="select-display">-- 교양 분류를 먼저 선택하세요 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                        </div>
+                                </div>
+                            </div>
+                             <div class="filter-group">
+                                <strong>교양 이수 구분:</strong>
+                                <div class="multi-select-dropdown">
+                                    <div class="select-display">-- 선택 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                        {% for item in filter_options.general_term_gyoyang %}
+                                        <label><input type="checkbox" name="general_term_gyoyang" value="{{ item }}">{{ item }}</label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="etc-filters" style="display: none;">
+                            <div class="filter-group">
+                                <strong>기타 분류:</strong>
+                                <div class="multi-select-dropdown">
+                                    <div class="select-display">-- 선택 --</div>
+                                    <div class="checkbox-options">
+                                        <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
+                                        {% for item in filter_options.etc_type %}
+                                        <label><input type="checkbox" name="etc_type" value="{{ item }}" {% if item in submitted_filters.etc_type %}checked{% endif %}>{{ item }}</label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <strong>학점 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('credit')">전체</span></label> 
+                            {% for c in filter_options.credit %}  
+                                <label><input type="checkbox" name="credit" value="{{ c }}" {% if c|stringformat:"s" in submitted_filters.credit %}checked{% endif %}><span>{{ c }}학점</span></label>
+                            {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>선호 요일 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('preferred_days')">전체</span></label>
+                            {% for day in filter_options.days %}
+                                <label><input type="checkbox" name="preferred_days" value="{{ day }}" {% if day in submitted_filters.preferred_days %}checked{% endif %}><span>{{ day }}</span></label>
+                            {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>선호 교시 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('preferred_periods')">전체</span></label>
+                            {% for period in filter_options.periods %}
+                                <label><input type="checkbox" name="preferred_periods" value="{{ period }}" {% if period|stringformat:"s" in submitted_filters.preferred_periods %}checked{% endif %}><span>{{ period }}교시</span></label>
+                            {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <strong>수업 방식 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('class_styles')">전체</span></label>                   
+                            {% for item in filter_options.class_style %}
+                                <label><input type="checkbox" name="class_styles" value="{{ item }}" {% if item in submitted_filters.class_styles %}checked{% endif %}><span>{{ item }}</span></label>
+                            {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <strong>평가 기준 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('grade_evaluation')">전체</span></label>                                
+                                {% for item in filter_options.grade_evaluation %}
+                                <label><input type="checkbox" name="grade_evaluation" value="{{ item }}" {% if item in submitted_filters.grade_evaluation %}checked{% endif %}><span>{{ item }}</span></label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>성적 평가 방식 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('grade_eval_methods')">전체</span></label>
+                            {% for item in filter_options.grade_eval_methods %}
+                                <label><input type="checkbox" name="grade_eval_methods" value="{{ item }}" {% if item in submitted_filters.grade_eval_methods %}checked{% endif %}><span>{{ item }}</span></label>
+                            {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>강의 방식 (복수선택 가능):</strong>
+                            <div class="filter-options">
+                            <label><span onclick="checkAllOptions('lecture_methods')">전체</span></label>
+                            {% for item in filter_options.lecture_methods %}
+                                <label><input type="checkbox" name="lecture_methods" value="{{ item }}" {% if item in submitted_filters.lecture_methods %}checked{% endif %}><span>{{ item }}</span></label>
+                            {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" style="margin-top: 1em;">필터 적용하기</button>
+                </form>
+            </div>
+            
+            {% if filtered_recommendations is not None %}
+            <div id="filtered-results">
+                <hr style="margin: 2em 0;">
+                <h3>✔️ 필터 적용 결과 ({{ filtered_recommendations|length }}개)</h3>
+                <table>
+                    <thead>
+                        <tr><th>과목명</th><th>학정번호</th><th>분반</th><th>과목 분류</th><th>과목 세부분류</th><th>개설 시간</th><th>추천 점수</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for course in filtered_recommendations %}
+                        <tr><td>{{ course.SUBJT_NM }}</td><td>{{ course.SUBJTNB }}</td><td>{{ course.CORSE_DVCLS_NO }}</td><td>{{ course.subject_category }}</td><td>{{ course.subject_div }}</td><td>{{ course.schedule_pairs }}</td><td>{{ course.pred_score|floatformat:3 }}</td></tr>
+                        {% empty %}
+                        <tr><td colspan="5">조건에 맞는 과목이 없습니다. 필터를 조정해보세요.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <script id="major-hierarchy-data" type="application/json">{{ major_hierarchy_json|safe }}</script>
+    <script id="gyoyang-hierarchy-data" type="application/json">{{ gyoyang_hierarchy_json|safe }}</script>
+    <script>
+        // 최종 완성본 JavaScript
+        const majorHierarchy = JSON.parse(document.getElementById('major-hierarchy-data').textContent);
+        const gyoyangHierarchy = JSON.parse(document.getElementById('gyoyang-hierarchy-data').textContent);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.multi-select-dropdown').forEach(setupDropdown);
+            
+            const collegeDd = document.getElementById('college-dropdown');
+            if (collegeDd) collegeDd.addEventListener('change', handleCollegeChange);
+            
+            const majorDd = document.getElementById('major-dropdown');
+            if (majorDd) majorDd.addEventListener('change', handleMajorChange);
+
+            const gyoyangTypeDd = document.getElementById('gyoyang-type-dropdown');
+            if (gyoyangTypeDd) gyoyangTypeDd.addEventListener('change', handleGyoyangTypeChange);
+
+            {% if submitted_filters and filtered_recommendations is not None %}
+                restoreDropdownState();
+            {% endif %}
+
+            const submittedCategories = {{ submitted_filters.subject_category|default:'[]'|safe }};
+            if (submittedCategories.length > 0) {
+                document.querySelectorAll('input[name="subject_category"]').forEach(cb => { 
+                    if (submittedCategories.includes(cb.value)) cb.checked = true; 
+                });
+            }
+            toggleFilters();
+
+            {% if filtered_recommendations is not None %}
+                showFilters();
+                document.getElementById('filtered-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            {% endif %}
+        });
+
+        function handleCollegeChange() {
+            const selected = getSelectedValues('college_name');
+            const toShow = new Set();
+            selected.forEach(item => {
+                Object.keys(majorHierarchy[item] || {}).forEach(sub => toShow.add(sub));
+            });
+            populateOptions(document.getElementById('major-dropdown'), sortedSet(toShow), 'major_name');
+            populateOptions(document.getElementById('major-detail-dropdown'), [], 'major_detail');
+            updateAllDisplays();
+        }
+        
+        function handleMajorChange() {
+            const selColleges = getSelectedValues('college_name');
+            const selMajors = getSelectedValues('major_name');
+            const toShow = new Set();
+            selColleges.forEach(college => {
+                selMajors.forEach(major => {
+                    if (majorHierarchy[college] && majorHierarchy[college][major]) {
+                        majorHierarchy[college][major].forEach(detail => toShow.add(detail));
+                    }
+                });
+            });
+            populateOptions(document.getElementById('major-detail-dropdown'), sortedSet(toShow), 'major_detail');
+            updateAllDisplays();
+        }
+
+        function handleGyoyangTypeChange() {
+            const selected = getSelectedValues('general_type_gyoyang');
+            const toShow = new Set();
+            selected.forEach(item => {
+                (gyoyangHierarchy[item] || []).forEach(sub => toShow.add(sub));
+            });
+            populateOptions(document.getElementById('gyoyang-subcategory-dropdown'), sortedSet(toShow), 'general_subcategory_gyoyang');
+            updateAllDisplays();
+        }
+        
+        function populateOptions(dropdown, items, name) {
+            const container = dropdown.querySelector('.checkbox-options');
+            container.querySelectorAll('label:not(.select-all)').forEach(el => el.remove());
+            items.forEach(item => {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = name;
+                checkbox.value = item;
+                label.appendChild(checkbox);
+                label.append(" " + item);
+                container.appendChild(label);
+            });
+            setupDropdown(dropdown);
+            updateSelectAllState(container);
+        }
+
+        function setupDropdown(dropdown) {
+            if (dropdown.dataset.eventsAttached) return;
+            dropdown.dataset.eventsAttached = 'true';
+            
+            const display = dropdown.querySelector('.select-display');
+            const optionsContainer = dropdown.querySelector('.checkbox-options');
+            
+            display.addEventListener('click', e => {
+                e.stopPropagation();
+                closeAllDropdowns(dropdown);
+                optionsContainer.classList.toggle('show');
+            });
+            
+            optionsContainer.addEventListener('change', e => {
+                if (e.target.type === 'checkbox') {
+                    if (e.target.name === 'select_all') {
+                        optionsContainer.querySelectorAll('input[type="checkbox"]:not([name="select_all"])').forEach(cb => cb.checked = e.target.checked);
+                    } else {
+                        updateSelectAllState(optionsContainer);
+                    }
+                    updateDropdownDisplay(dropdown);
+                    dropdown.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        }
+
+        function updateSelectAllState(container) {
+            const selectAll = container.querySelector('input[name="select_all"]');
+            if (!selectAll) return;
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]:not([name="select_all"])');
+            selectAll.checked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+        }
+
+        window.addEventListener('click', () => closeAllDropdowns());
+
+        function closeAllDropdowns(except = null) {
+            document.querySelectorAll('.multi-select-dropdown').forEach(dd => {
+                if (dd !== except) {
+                    dd.querySelector('.checkbox-options').classList.remove('show');
+                }
+            });
+        }
+
+        function restoreDropdownState() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                const name = cb.name;
+                const value = cb.value;
+                const submitted = {{ submitted_filters|default:'{}'|safe }};
+                if (submitted[name] && submitted[name].includes(value)) {
+                    cb.checked = true;
+                }
+            });
+
+            if (getSelectedValues('college_name').length > 0) handleCollegeChange();
+            if (getSelectedValues('major_name').length > 0) handleMajorChange();
+            if (getSelectedValues('general_type_gyoyang').length > 0) handleGyoyangTypeChange();
+            
+            // Restore selections for dynamically populated fields
+            const submittedMajors = {{ submitted_filters.major_name|default:'[]'|safe }};
+            submittedMajors.forEach(major => {
+                const cb = document.querySelector(`#major-dropdown input[value="${CSS.escape(major)}"]`);
+                if (cb) cb.checked = true;
+            });
+            
+            const submittedDetails = {{ submitted_filters.major_detail|default:'[]'|safe }};
+            submittedDetails.forEach(detail => {
+                const cb = document.querySelector(`#major-detail-dropdown input[value="${CSS.escape(detail)}"]`);
+                if (cb) cb.checked = true;
+            });
+
+            const submittedSubcategories = {{ submitted_filters.general_subcategory_gyoyang|default:'[]'|safe }};
+            submittedSubcategories.forEach(sub => {
+                const cb = document.querySelector(`#gyoyang-subcategory-dropdown input[value="${CSS.escape(sub)}"]`);
+                if (cb) cb.checked = true;
+            });
+
+            updateAllDisplays();
+            document.querySelectorAll('.checkbox-options').forEach(updateSelectAllState);
+        }
+
+        function updateDropdownDisplay(dropdown) {
+            const count = dropdown.querySelectorAll('input:not([name="select_all"]):checked').length;
+            const display = dropdown.querySelector('.select-display');
+            let defaultText = '-- 선택 --';
+            if (dropdown.id.includes('major-dropdown')) defaultText = '-- 단과대학을 먼저 선택하세요 --';
+            if (dropdown.id.includes('major-detail')) defaultText = '-- 전공을 먼저 선택하세요 --';
+            if (dropdown.id.includes('gyoyang-subcategory')) defaultText = '-- 교양 분류를 먼저 선택하세요 --';
+            display.textContent = count > 0 ? `${count}개 선택됨` : defaultText;
+        }
+
+        function updateAllDisplays() {
+            document.querySelectorAll('.multi-select-dropdown').forEach(updateDropdownDisplay);
+        }
+
+        function getSelectedValues(name) {
+            return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+        }
+        
+        function sortedSet(set) { 
+            return Array.from(set).sort((a, b) => a.localeCompare(b, 'ko')); 
+        }
+        
+        function showFilters() {
+            document.getElementById('filter-section').style.display = 'block';
+            document.getElementById('show-filters-btn').style.display = 'none';
+        }
+
+        // [추가] 버튼형 필터의 '전체' 버튼을 위한 함수
+        function checkAllOptions(groupName) {
+            const checkboxes = document.querySelectorAll(`input[name="${groupName}"]`);
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function toggleFilters() {
+            const checkboxes = document.querySelectorAll('input[name="subject_category"]');
+            const selectedCategories = new Set();
+            let isAllSelected = false;
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    if (cb.value === '전체') isAllSelected = true;
+                    else selectedCategories.add(cb.value);
+                }
+            });
+
+            const majorFilters = document.getElementById('major-filters');
+            const gyoyangFilters = document.getElementById('gyoyang-filters');
+            const etcFilters = document.getElementById('etc-filters');
+
+            if (isAllSelected) {
+                majorFilters.style.display = 'block';
+                gyoyangFilters.style.display = 'block';
+                etcFilters.style.display = 'block';
+                checkboxes.forEach(cb => { if (cb.value !== '전체') cb.checked = false; });
+            } else {
+                document.querySelector('input[name="subject_category"][value="전체"]').checked = false;
+                majorFilters.style.display = selectedCategories.has('전공') ? 'block' : 'none';
+                gyoyangFilters.style.display = selectedCategories.has('교양') ? 'block' : 'none';
+                etcFilters.style.display = selectedCategories.has('기타') ? 'block' : 'none';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            const submittedCategories = {{ submitted_filters.subject_category|default:'[]'|safe }};
+            if (submittedCategories.length > 0) {
+                const checkboxes = document.querySelectorAll('input[name="subject_category"]');
+                checkboxes.forEach(cb => { if (submittedCategories.includes(cb.value)) cb.checked = true; });
+            }
+            toggleFilters();
+
+            {% if filtered_recommendations is not None %}
+                showFilters();
+                const resultsDiv = document.getElementById('filtered-results');
+                if (resultsDiv) {
+                    resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
