@@ -42,11 +42,47 @@
 
         .form-container,
         .results-container,
-        .student-info-container {
+        .student-info-container,
+        .filter-container {
             margin-bottom: 2em;
             padding: 1.5em;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
+        }
+
+        .filter-group {
+            margin-bottom: 1.5em;
+        }
+
+        .filter-group strong {
+            display: block;
+            margin-bottom: 0.5em;
+            color: #0056b3;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .filter-options label {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: white;
+            transition: all 0.2s;
+        }
+
+        .filter-options label:hover {
+            background-color: #f0f0f0;
+        }
+
+        .filter-options input[type="checkbox"] {
+            margin-right: 6px;
         }
 
         button {
@@ -63,6 +99,14 @@
             background-color: #218838;
         }
 
+        button.secondary {
+            background-color: #007bff;
+        }
+
+        button.secondary:hover {
+            background-color: #0056b3;
+        }
+
         h1,
         h2,
         h3 {
@@ -72,6 +116,10 @@
         .error {
             color: red;
             font-weight: bold;
+        }
+
+        #filter-section {
+            display: none;
         }
     </style>
 </head>
@@ -139,6 +187,135 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+            <hr style="margin: 2em 0;">
+
+            <button class="secondary"
+                onclick="document.getElementById('filter-section').style.display='block'; this.style.display='none';">⚙️
+                필터 옵션 표시</button>
+
+            <div id="filter-section">
+                <h3>2️⃣ 나만의 맞춤 필터 적용하기</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="student_id" value="{{ student_id }}">
+                    <input type="hidden" name="is_filtering" value="true">
+
+                    <div class="filter-container">
+                        <div class="filter-group">
+                            <strong>📚 과목 분류</strong>
+                            <div class="filter-options">
+                                <label><input type="checkbox" name="subject_category" value="전공"> 전공</label>
+                                <label><input type="checkbox" name="subject_category" value="교양"> 교양</label>
+                                <label><input type="checkbox" name="subject_category" value="기타"> 기타</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>📊 학점</strong>
+                            <div class="filter-options">
+                                {% for c in filter_options.credit %}
+                                <label><input type="checkbox" name="credit" value="{{ c }}"> {{ c }}학점</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>📅 선호 요일</strong>
+                            <div class="filter-options">
+                                {% for day in filter_options.days %}
+                                <label><input type="checkbox" name="preferred_days" value="{{ day }}"> {{ day }}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>🕐 선호 교시</strong>
+                            <div class="filter-options">
+                                {% for period in filter_options.periods %}
+                                <label><input type="checkbox" name="preferred_periods" value="{{ period }}"> {{ period
+                                    }}교시</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>🎯 수업 방식</strong>
+                            <div class="filter-options">
+                                {% for item in filter_options.class_style %}
+                                <label><input type="checkbox" name="class_styles" value="{{ item }}"> {{ item }}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>📝 평가 방식</strong>
+                            <div class="filter-options">
+                                <label><input type="checkbox" name="grade_evaluation" value="상대평가"> 상대평가</label>
+                                <label><input type="checkbox" name="grade_evaluation" value="절대평가"> 절대평가</label>
+                                <label><input type="checkbox" name="grade_evaluation" value="P/F"> P/F</label>
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>✍️ 성적 평가 방식</strong>
+                            <div class="filter-options">
+                                {% for item in filter_options.grade_eval_methods %}
+                                <label><input type="checkbox" name="grade_eval_methods" value="{{ item }}"> {{ item
+                                    }}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="filter-group">
+                            <strong>🎓 강의 방식</strong>
+                            <div class="filter-options">
+                                {% for item in filter_options.lecture_methods %}
+                                <label><input type="checkbox" name="lecture_methods" value="{{ item }}"> {{ item
+                                    }}</label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit">필터 적용하기</button>
+                </form>
+            </div>
+
+            {% if filtered_recommendations is not None %}
+            <hr style="margin: 2em 0;">
+            <h3>✅ 필터 적용 결과 ({{ filtered_recommendations|length }}개)</h3>
+            {% if filtered_recommendations %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>과목명</th>
+                        <th>학정번호</th>
+                        <th>분반</th>
+                        <th>과목 분류</th>
+                        <th>과목 세부분류</th>
+                        <th>개설 시간</th>
+                        <th>추천 점수</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in filtered_recommendations %}
+                    <tr>
+                        <td>{{ course.SUBJT_NM }}</td>
+                        <td>{{ course.SUBJTNB }}</td>
+                        <td>{{ course.CORSE_DVCLS_NO }}</td>
+                        <td>{{ course.subject_category }}</td>
+                        <td>{{ course.subject_div }}</td>
+                        <td>{{ course.schedule_pairs }}</td>
+                        <td>{{ course.pred_score|floatformat:3 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>조건에 맞는 과목이 없습니다. 필터를 조정해보세요.</p>
+            {% endif %}
+            {% endif %}
         </div>
         {% endif %}
     </div>
