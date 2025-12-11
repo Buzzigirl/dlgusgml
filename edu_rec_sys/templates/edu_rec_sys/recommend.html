@@ -246,7 +246,6 @@
 
         {% if student_data %}
         <!-- Chat Interface Section -->
-        <!-- Chat Interface Section -->
         <div id="chat-interface" style="display: none;">
             <div class="chat-header">
                 <span>🤖 AI 튜터 챗봇</span>
@@ -451,11 +450,15 @@
                             <strong>평가 기준 (복수선택 가능):</strong>
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('grade_evaluation')">전체</span></label>
-                                {% for item in filter_options.grade_evaluation %}
-                                <label><input type="checkbox" name="grade_evaluation" value="{{ item }}" {% if item in
-                                        submitted_filters.grade_evaluation %}checked{% endif %}><span>{{ item
-                                        }}</span></label>
-                                {% endfor %}
+                                <label><input type="checkbox" name="grade_evaluation" value="상대평가" {% if "상대평가" in
+                                        submitted_filters.grade_evaluation %}checked{% endif
+                                        %}><span>상대평가</span></label>
+                                <label><input type="checkbox" name="grade_evaluation" value="절대평가" {% if "절대평가" in
+                                        submitted_filters.grade_evaluation %}checked{% endif
+                                        %}><span>절대평가</span></label>
+                                <label><input type="checkbox" name="grade_evaluation" value="P/F" {% if "P/F" in
+                                        submitted_filters.grade_eval_methods %}checked{% endif
+                                        %}><span>P/F</span></label>
                             </div>
                         </div>
 
@@ -566,7 +569,10 @@
 
         {% if filtered_recommendations is not None %}
         showFilters();
-        document.getElementById('filtered-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const resultsDiv = document.getElementById('filtered-results');
+        if (resultsDiv) {
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
         {% endif %}
         });
 
@@ -766,24 +772,6 @@
                 etcFilters.style.display = selectedCategories.has('기타') ? 'block' : 'none';
             }
         }
-
-        window.addEventListener('DOMContentLoaded', function () {
-            const submittedCategories = {{ submitted_filters.subject_category|default: '[]' | safe
-        }};
-        if (submittedCategories.length > 0) {
-            const checkboxes = document.querySelectorAll('input[name="subject_category"]');
-            checkboxes.forEach(cb => { if (submittedCategories.includes(cb.value)) cb.checked = true; });
-        }
-        toggleFilters();
-
-        {% if filtered_recommendations is not None %}
-        showFilters();
-        const resultsDiv = document.getElementById('filtered-results');
-        if (resultsDiv) {
-            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        {% endif %}
-        });
     </script>
 </body>
 
