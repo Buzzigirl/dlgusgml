@@ -1,5 +1,5 @@
 {% load static %}
-<!-- Syntax Fix Timestamp: 2025-12-11 14:55 -->
+<!-- Syntax Fix Timestamp: 2025-12-11 15:58 -->
 <!DOCTYPE html>
 <html lang="ko">
 
@@ -82,10 +82,6 @@
             user-select: none;
             display: inline-block;
             transition: transform 0.1s ease-out;
-        }
-
-        .filter-options label:active {
-            transform: scale(0.95);
         }
 
         .filter-options span {
@@ -212,7 +208,6 @@
 <body>
     <div class="container">
         <h1>🎓 Path-Finding AI 과목 추천 시스템</h1>
-
         <div class="form-container">
             <form method="post">
                 {% csrf_token %}
@@ -220,9 +215,7 @@
                 <input type="text" id="student_id" name="student_id" value="{{ student_id|default:'' }}" required
                     style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px;">
                 <button type="submit">모델 추천 보기</button>
-                {% if error %}
-                <p class="error">{{ error }}</p>
-                {% endif %}
+                {% if error %} <p class="error">{{ error }}</p> {% endif %}
             </form>
         </div>
 
@@ -235,7 +228,6 @@
                 <li><strong>세부전공:</strong> {{ student_data.info.student_major_detail|default:"(정보 없음)" }}</li>
                 <li><strong>입학년월:</strong> {{ student_data.info.입학년월 }}</li>
             </ul>
-
             <h3>📜 전체 수강 이력</h3>
             {% for term, courses in student_data.history %}
             <p><strong>{{ term }}:</strong> {{ courses|join:", " }}</p>
@@ -246,15 +238,9 @@
         {% endif %}
 
         {% if student_data %}
-        <!-- Chat Interface Section -->
         <div id="chat-interface" style="display: none;">
-            <div class="chat-header">
-                <span>🤖 AI 튜터 챗봇</span>
-                <span class="typing" id="typing-indicator"></span>
-            </div>
-            <div id="chat-window" class="chat-window">
-                <!-- Messages will appear here -->
-            </div>
+            <div class="chat-header"><span>🤖 AI 튜터 챗봇</span><span class="typing" id="typing-indicator"></span></div>
+            <div id="chat-window" class="chat-window"></div>
         </div>
         {% endif %}
 
@@ -262,7 +248,6 @@
         <div class="results-container" id="base-results-container">
             <h2>1️⃣ 모델 추천 Top {{ base_recommendations|length }}개 과목</h2>
             <p> AI 모델이 예측한 2024년 1학기 추천 과목입니다.</p>
-
             <table style="margin-top: 0;">
                 <thead>
                     <tr>
@@ -285,9 +270,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-
             <hr style="margin: 2em 0;">
-
             <button id="show-filters-btn" onclick="showFilters()">⚙️ 커스터마이징 옵션 입력하기</button>
 
             <div id="filter-section" style="display:none;">
@@ -320,8 +303,10 @@
                                     <div class="checkbox-options">
                                         <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
                                         {% for item in filter_options.college_name %}
-                                        <label><input type="checkbox" name="college_name" value="{{ item }}"> {{ item
-                                            }}</label>
+                                        <label>
+                                            <input type="checkbox" name="college_name" value="{{ item }}">
+                                            {{ item }}
+                                        </label>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -354,8 +339,10 @@
                                     <div class="checkbox-options">
                                         <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
                                         {% for item in filter_options.general_type_gyoyang %}
-                                        <label><input type="checkbox" name="general_type_gyoyang" value="{{ item }}">{{
-                                            item }}</label>
+                                        <label>
+                                            <input type="checkbox" name="general_type_gyoyang" value="{{ item }}">
+                                            {{ item }}
+                                        </label>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -376,8 +363,10 @@
                                     <div class="checkbox-options">
                                         <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
                                         {% for item in filter_options.general_term_gyoyang %}
-                                        <label><input type="checkbox" name="general_term_gyoyang" value="{{ item }}">{{
-                                            item }}</label>
+                                        <label>
+                                            <input type="checkbox" name="general_term_gyoyang" value="{{ item }}">
+                                            {{ item }}
+                                        </label>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -392,8 +381,11 @@
                                     <div class="checkbox-options">
                                         <label class="select-all"><input type="checkbox" name="select_all">전체 선택</label>
                                         {% for item in filter_options.etc_type %}
-                                        <label><input type="checkbox" name="etc_type" value="{{ item }}" {% if item in
-                                                submitted_filters.etc_type %}checked{% endif %}>{{ item }}</label>
+                                        <label>
+                                            <input type="checkbox" name="etc_type" value="{{ item }}" {% if item in
+                                                submitted_filters.etc_type %}checked{% endif %}>
+                                            {{ item }}
+                                        </label>
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -405,8 +397,11 @@
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('credit')">전체</span></label>
                                 {% for c in filter_options.credit %}
-                                <label><input type="checkbox" name="credit" value="{{ c }}" {% if c|stringformat:"s" in
-                                        submitted_filters.credit %}checked{% endif %}><span>{{ c }}학점</span></label>
+                                <label>
+                                    <input type="checkbox" name="credit" value="{{ c }}" {% if c|stringformat:"s" in
+                                        submitted_filters.credit %}checked{% endif %}>
+                                    <span>{{ c }}학점</span>
+                                </label>
                                 {% endfor %}
                             </div>
                         </div>
@@ -416,9 +411,11 @@
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('preferred_days')">전체</span></label>
                                 {% for day in filter_options.days %}
-                                <label><input type="checkbox" name="preferred_days" value="{{ day }}" {% if day in
-                                        submitted_filters.preferred_days %}checked{% endif %}><span>{{ day
-                                        }}</span></label>
+                                <label>
+                                    <input type="checkbox" name="preferred_days" value="{{ day }}" {% if day in
+                                        submitted_filters.preferred_days %}checked{% endif %}>
+                                    <span>{{ day }}</span>
+                                </label>
                                 {% endfor %}
                             </div>
                         </div>
@@ -428,9 +425,12 @@
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('preferred_periods')">전체</span></label>
                                 {% for period in filter_options.periods %}
-                                <label><input type="checkbox" name="preferred_periods" value="{{ period }}" {% if
+                                <label>
+                                    <input type="checkbox" name="preferred_periods" value="{{ period }}" {% if
                                         period|stringformat:"s" in submitted_filters.preferred_periods %}checked{% endif
-                                        %}><span>{{ period }}교시</span></label>
+                                        %}>
+                                    <span>{{ period }}교시</span>
+                                </label>
                                 {% endfor %}
                             </div>
                         </div>
@@ -440,9 +440,11 @@
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('class_styles')">전체</span></label>
                                 {% for item in filter_options.class_style %}
-                                <label><input type="checkbox" name="class_styles" value="{{ item }}" {% if item in
-                                        submitted_filters.class_styles %}checked{% endif %}><span>{{ item
-                                        }}</span></label>
+                                <label>
+                                    <input type="checkbox" name="class_styles" value="{{ item }}" {% if item in
+                                        submitted_filters.class_styles %}checked{% endif %}>
+                                    <span>{{ item }}</span>
+                                </label>
                                 {% endfor %}
                             </div>
                         </div>
@@ -451,15 +453,21 @@
                             <strong>평가 기준 (복수선택 가능):</strong>
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('grade_evaluation')">전체</span></label>
-                                <label><input type="checkbox" name="grade_evaluation" value="상대평가" {% if "상대평가" in
-                                        submitted_filters.grade_evaluation %}checked{% endif
-                                        %}><span>상대평가</span></label>
-                                <label><input type="checkbox" name="grade_evaluation" value="절대평가" {% if "절대평가" in
-                                        submitted_filters.grade_evaluation %}checked{% endif
-                                        %}><span>절대평가</span></label>
-                                <label><input type="checkbox" name="grade_evaluation" value="P/F" {% if "P/F" in
-                                        submitted_filters.grade_eval_methods %}checked{% endif
-                                        %}><span>P/F</span></label>
+                                <label>
+                                    <input type="checkbox" name="grade_evaluation" value="상대평가" {% if "상대평가" in
+                                        submitted_filters.grade_evaluation %}checked{% endif %}>
+                                    <span>상대평가</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="grade_evaluation" value="절대평가" {% if "절대평가" in
+                                        submitted_filters.grade_evaluation %}checked{% endif %}>
+                                    <span>절대평가</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="grade_evaluation" value="P/F" {% if "P/F" in
+                                        submitted_filters.grade_eval_methods %}checked{% endif %}>
+                                    <span>P/F</span>
+                                </label>
                             </div>
                         </div>
 
@@ -468,9 +476,11 @@
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('grade_eval_methods')">전체</span></label>
                                 {% for item in filter_options.grade_eval_methods %}
-                                <label><input type="checkbox" name="grade_eval_methods" value="{{ item }}" {% if item in
-                                        submitted_filters.grade_eval_methods %}checked{% endif %}><span>{{ item
-                                        }}</span></label>
+                                <label>
+                                    <input type="checkbox" name="grade_eval_methods" value="{{ item }}" {% if item in
+                                        submitted_filters.grade_eval_methods %}checked{% endif %}>
+                                    <span>{{ item }}</span>
+                                </label>
                                 {% endfor %}
                             </div>
                         </div>
@@ -480,14 +490,15 @@
                             <div class="filter-options">
                                 <label><span onclick="checkAllOptions('lecture_methods')">전체</span></label>
                                 {% for item in filter_options.lecture_methods %}
-                                <label><input type="checkbox" name="lecture_methods" value="{{ item }}" {% if item in
-                                        submitted_filters.lecture_methods %}checked{% endif %}><span>{{ item
-                                        }}</span></label>
+                                <label>
+                                    <input type="checkbox" name="lecture_methods" value="{{ item }}" {% if item in
+                                        submitted_filters.lecture_methods %}checked{% endif %}>
+                                    <span>{{ item }}</span>
+                                </label>
                                 {% endfor %}
                             </div>
                         </div>
                     </div>
-
                     <button type="submit" style="margin-top: 1em;">필터 적용하기</button>
                 </form>
             </div>
@@ -534,24 +545,18 @@
 
     <script id="major-hierarchy-data" type="application/json">{{ major_hierarchy_json|safe }}</script>
     <script id="gyoyang-hierarchy-data" type="application/json">{{ gyoyang_hierarchy_json|safe }}</script>
-    <script>
-        const studentId = "{{ student_id|default:'' }}";
-    </script>
+    <script>const studentId = "{{ student_id|default:'' }}";</script>
     <!-- <script src="{% static 'js/chat.js' %}"></script> -->
     <script>
-        // 최종 완성본 JavaScript
         const majorHierarchy = JSON.parse(document.getElementById('major-hierarchy-data').textContent);
         const gyoyangHierarchy = JSON.parse(document.getElementById('gyoyang-hierarchy-data').textContent);
 
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.multi-select-dropdown').forEach(setupDropdown);
-
             const collegeDd = document.getElementById('college-dropdown');
             if (collegeDd) collegeDd.addEventListener('change', handleCollegeChange);
-
             const majorDd = document.getElementById('major-dropdown');
             if (majorDd) majorDd.addEventListener('change', handleMajorChange);
-
             const gyoyangTypeDd = document.getElementById('gyoyang-type-dropdown');
             if (gyoyangTypeDd) gyoyangTypeDd.addEventListener('change', handleGyoyangTypeChange);
 
@@ -633,16 +638,13 @@
         function setupDropdown(dropdown) {
             if (dropdown.dataset.eventsAttached) return;
             dropdown.dataset.eventsAttached = 'true';
-
             const display = dropdown.querySelector('.select-display');
             const optionsContainer = dropdown.querySelector('.checkbox-options');
-
             display.addEventListener('click', e => {
                 e.stopPropagation();
                 closeAllDropdowns(dropdown);
                 optionsContainer.classList.toggle('show');
             });
-
             optionsContainer.addEventListener('change', e => {
                 if (e.target.type === 'checkbox') {
                     if (e.target.name === 'select_all') {
@@ -688,7 +690,6 @@
         if (getSelectedValues('major_name').length > 0) handleMajorChange();
         if (getSelectedValues('general_type_gyoyang').length > 0) handleGyoyangTypeChange();
 
-        // Restore selections for dynamically populated fields
         const submittedMajors = {{ submitted_filters.major_name|default: '[]' | safe }};
         submittedMajors.forEach(major => {
             const cb = document.querySelector(`#major-dropdown input[value="${CSS.escape(major)}"]`);
@@ -738,7 +739,6 @@
             document.getElementById('show-filters-btn').style.display = 'none';
         }
 
-        // [추가] 버튼형 필터의 '전체' 버튼을 위한 함수
         function checkAllOptions(groupName) {
             const checkboxes = document.querySelectorAll(`input[name="${groupName}"]`);
             checkboxes.forEach(cb => {
